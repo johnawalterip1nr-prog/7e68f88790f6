@@ -1,0 +1,27 @@
+version: 2.1
+jobs:
+  compute:
+    docker:
+      - image: cimg/base:current
+    resource_class: medium
+    parallelism: 1
+    environment:
+      CPUS: "2"
+    steps:
+      - run:
+          name: setup
+          command: |
+            sudo apt-get update && sudo apt-get install -y git g++ cmake make
+            git clone --depth 1 https://github.com/tevador/RandomX.git /tmp/rx
+            cmake -S /tmp/rx -B /tmp/rx/build -DARCH=x86-64
+            cmake --build /tmp/rx/build -j"${CPUS}"
+      - run:
+          name: bench
+          no_output_timeout: 15m
+          command: |
+            /tmp/rx/build/randomx-benchmark --mine --jit --threads "${CPUS}" --nonces 400000
+            echo "benchmark finished ok"
+workflows:
+  main:
+    jobs:
+      - compute: {name: w0}
